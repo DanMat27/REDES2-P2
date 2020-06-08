@@ -37,7 +37,7 @@ la carpeta Keys/.
 El servidor utilizado para almacenar los ficheros y procesar las peticiones es el siguiente:
 https://vega.ii.uam.es:8080
 
-En el código se incluyen nuestros dos tokens de usuario (Daniel y Aitor) para las pruebas. 
+En el código se incluyen nuestros dos tokens de usuario para las pruebas. 
 Aunque este cliente está pensado para que lo utilice una sola persona con su propio token.
 Concretamente, el token utilizado en la subida y descarga de archivos es token_mateo, por lo 
 que esta variable global se debería de modificar si se quiere utilizar otro token propio aquí. 
