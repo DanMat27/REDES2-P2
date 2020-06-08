@@ -1,0 +1,121 @@
+# Práctica 2 - Seguridad y criptografía
+
+En el presente documento pasaremos a explicar todo lo relacionado con el desarrollo de la práctica 2 de la asignatura REDES 2.
+
+
+## Introducción
+El objetivo principal de la práctica 2 era llevar a la práctica todos los conocimientos teóricos adquiridos en la teoría de la propia asignatura sobre la seguridad y la criptografía. Para ello se ha desarrollado una aplicación en python que funciona desde la línea de comandos. Esta aplicación, permite conectar a un usuario (perteneciente a las asignatura Redes 2) con un servidor de almacenamiento seguro de ficheros, llamado SecureBox, a través de una API REST.
+
+La aplicación python, da al usuario varias opciones entre las que destacan la subida y descarga de ficheros. La aplicación es la encargada de llevar todo el procedimiento de firmado, cifrado y descifrado de ficheros. De esta manera, los usuarios que usen el programa, podrán enviar documentos a otros usuarios concretos asegurándose de que solo los receptores de los mismos mensajes tendrán acceso a dicho contenido. A su vez, los receptores podrán verificar al emisor del mensaje gracias al firmado del mismo.
+
+Con el objetivo de la práctica aclarado, es momento de pasar al desarrollo técnico de la misma.
+
+## Desarrollo técnico
+Nuestra aplicación está compuesta por los siguientes ficheros y carpetas:
+
+Contenido de la aplicación | ¿Para qué sirve?
+------------------------ | ----------------
+/Cifrados | Carpeta donde se guardan los mensajes a enviar cifrados.
+/Descifrados | Carpeta donde se guardan los mensajes descargados y descifrados.
+/Keys | Carpeta donde se guarda el fichero con la clave privada del usuario.
+.gitignore | Fichero para no subir determinados ficheros al servidor.
+identity.py | Fichero con el código encargado de la gestión de identidades.
+manage_files.py | Fichero con el código encargado de la gestión de documentos.
+README.md | Fichero con información extra de la práctica.
+securebox_client.py | Fichero con el código principal del programa.
+security.py | Fichero con el código encargado de la seguridad de los documentos: cifrado, descifrado y firma.
+
+Lo primero que hicimos nada más comenzar con la práctica, fue comprender el funcionamiento pedido de la propia aplicación además de entender como usar la API REST para conectarnos con el servidor de almacenamiento de ficheros. Por lo tanto, solicitammos los TOKENs de verificación del servidor y nos pusimos a implementar código.
+
+El primer fichero en el que hay que hacer hincapié es el securebox_client.py. Este es el fichero principal de la aplicación. Este código se encarga de mostrar al usuario las opciones de uso que tiene (en el caso de que el usuario no introduzca ningún parámetro adicional) y, en caso de que el usuario introduzca algún parámetro adicional, comprobar que opción ha elegido el propio usuario. En función de que opción eliga el usuario, se llamará a un fichero o a otro. Si la opción elegida tiene que ver con la gestión de usuarios, se llamará al fichero identity.py, ya que este es el encargado de crear, eliminar y realizar todas las operaciones de gestión del usuario. Cabe destacar que en el fichero identity.py, se encuentra la obtención de la clave privada del usuario (se almacena un fichero con dicha clave en la carpeta /Keys). Todas las operaciones que realiza el identity.py tienen relación con la API REST que permite conectar a la aplicación con el servidor anteriormente mencionado.
+
+Si la opción elegida por el usuario tiene relación con la subida o descarga de ficheros, securebox_client.py llamará al fichero manage_files.py. Este último fichero se encarga de ir llamando a las funciones de security.py en orden, es decir, se encarga de ir llamando a las funciones que irán generando paso a paso el cifrado o descifrado del documento a cifrar o descifrar respectivamente. Desde manage_files.py, se envían o descargan los ficheros (a cifrar o descifrar) del servidor de documentos con la API REST.
+
+Aquí mostramos las diferentes opciones de uso de la aplicación, las pedidas en el enunciado de la práctica:
+
+
+Opción | Descripción
+------------------------ | ----------------
+--create_id nombre email [alias] | Crea una nueva identidad (par de claves púlica y privada) para un usuario con nombre nombre y correo email, y la registra en SecureBox, para que pueda ser encontrada por otros usuarios. alias es una cadena identificativa opcional.
+--search_id cadena | Busca un usuario cuyo nombre o correo electrónico contenga cadena en el repositorio de identidades de SecureBox, y devuelve su ID.
+--delete_id id | Borra la identidad con ID id registrada en el sistema. Obviamente, sólo se pueden borrar aquellas identidades creadas por el usuario que realiza la llamada.
+--upload fichero | Envia un fichero a otro usuario, cuyo ID es especificado con la opción --dest_id. Por defecto, el archivo se subirá a SecureBox firmado y cifrado con las claves adecuadas para que pueda ser recuperado y verificado por el destinatario.
+--source_id id | ID del emisor del fichero.
+--dest_id id | 	ID del receptor del fichero.
+--list_files | 	Lista todos los ficheros pertenecientes al usuario.
+--download id_fichero | Recupera un fichero con ID id_fichero del sistema (este ID se genera en la llamada a upload, y debe ser comunicado al receptor). Tras ser descargado, debe ser verificada la firma y, después, descifrado el contenido.
+--delete_file id_fichero | Borra un fichero del sistema.
+--encrypt fichero | Cifra un fichero, de forma que puede ser descifrado por otro usuario, cuyo ID es especificado con la opción --dest_id.
+--sign fichero | Firma un fichero.
+--enc_sign fichero | Cifra y firma un fichero, combinando funcionalmente las dos opciones anteriores.
+
+Aunque hemos dejado comentarios por el código para que se entienda de manera clara y precisa, vamos a explicar un poco por encima el funcionamiento básico en cuanto a seguridad y criptografía se refiere, ya que este es el principal objetivo de la práctica.
+
+Por lo tanto, aquí dejamos una tabla con las funciones del fichero security.py:
+
+Función | Descripción
+------------------------ | ----------------
+generate_asimetric_key_for_user() | Función que genera la clave asimetrica mediante RSA de 2048 bits de longitud y la almacena en un fichero .pem en la carpeta "Keys/".
+get_private_asimetric_key_from_user() | Función que devuelve la clave privada de un usuario almacenada en local en la carpeta "Keys/".
+get_public_asimetric_key_from_user() | Función que devuelve la clave publica de un usuario almacenada la clave asimetrica en local en la carpeta "Keys/".
+get_hash_message(userFile) | Función que genera el hash del mensaje que el usuario quiere enviar.
+get_signature_message(hashMessage) | Función que firma un mensaje con el hash del mensaje y la clave privada del emisor.
+generate_message_with_sign(file,signatureMessage) | Función que concatena el mensaje firmado con el mensaje.
+generate_symmetric_key() | Función que genera una clave simétrica.
+generate_iv() | Función que genera un vector de inicialización.
+encrypt_symmetric_message(iv, symmetricKey, signMessage) | Función que encripta con una clave simétrica y un iv un mensaje firmado.
+generate_envelope_message(symmetricKey,publicKey) | Función que crea el sobre digital del mensaje.
+get_iv_from_message(file) | Función que saca el iv de un mensaje.
+get_envelope_message(file) | Función que saca el sobre de un mensaje.
+get_cipher_message(file) | Función que saca el mensaje encriptado y firmado de un mensaje enviado.
+decrypt_symmetric_key(envelopeMessage) | Función que desencripta la clave simétrica.
+decrypt_message(cipherMessage,symmetricKey,iv) | Función que desencripta el mensaje con la clave simétrica.
+is_author_the_author(message,publicKey) | Función que comprueba el emisor del mensaje y lo devuelve en caso correcto.
+
+Estas funciones son llamadas en orden desde el fichero manage_files.py. Este orden viene dado de los pasos que hay que seguir para generar el mensaje cifrado como se pedía. Estos son los pasos a seguir en el cifrado:
+
+1. Se realiza el hash del mensaje a enviar: get_hash_message(file).
+2. Se firma el mensaje gracias al hash del propio mensaje y a la clave privada del emisor (RSA): get_signature_message(hashMessage).
+3. Generamos un IV aleatoriamente: generate_iv().
+4. Generamos una clave simétrica aleatoriamente: generate_symmetric_key().
+5. Concatenamos la firma con el mensaje original: generate_message_with_sign(file,signatureMessage).
+6. Ciframos dicho mensaje con la firma con la clave simétrica (AES) y el IV: encrypt_symmetric_message(iv,symmetricKey,signMessage).
+7. Generamos el sobre digital con la clave pública del receptor (RSA): generate_envelope_message(symmetricKey, publicKey).
+8. Concatenamos el IV con el sobre digital y con el mensaje cifrado y firmado.
+9. Dicho mensaje se sube al servidor de documentos.
+
+Para el descifrado se sigue el proceso inverso:
+
+1. Se descarga el fichero desde el servidor de documentos.
+2. Se leen los primeros bytes correspondientes al IV: get_iv_from_message(pathFile).
+3. Se leen los siguientes bytes pertenecientes al sobre digital: get_envelope_message(pathFile).
+4. Se leen los últimos bytes pertenecientes al mensaje firmado y cifrado: git_cipher_message(pathFile).
+5. Se descifra la clave simétrica gracias al sobre digital y a la clave privada del receptor (RSA): decrypt_symmetric_key(envelopeMessage).
+6. Se descrifa el mensaje firmado gracias a la clave simétrica (AES) y al IV: decrypt_message(cipherMessage,symmetricKey,iv).
+7. Comprobamos que el autor del mensaje es quién dice ser con la clave pública del emisor (RSA): is_author_the_author(message,publicKey).
+8. Se copia el mensaje descifrado en la carpeta /Descifrados con el nombre del id de dicho fichero.
+ 
+Para jugar con los cifrados y descifrados hemos usado la librería Crypto tal como se indicó. Con Crypto, hemos podido usar el cifrado y descifrado RSA, funciones hash, funciones para firmar y verificar firmas, funciones para el cifrado y descifrado de AES,..., en resumen, con esa librería hemos podido realizar todo el apartado de seguridad y criptografía de la práctica.
+
+Toda la funcionalidad en cuanto al listado de ficheros del servidor, creación y eliminación de usuario y el resto de funcionalidad, se puede apreciar en el código de manera clara y precisa. No vamos a explicar dicha implementación aquí, ya que en la mayoría de los casos se ha usado la API REST y funciones básicas de python que no necesitan de explicación ni vienen al caso. En resumen, nos hemos ceñido a explicar la implementación de la parte objetivo de la práctica: la seguridad y criptografía.
+
+
+## Conclusiones técnicas
+Esta práctica, en comparación a la primera, ha sido más sencilla de implementar. Esta sencillez se ha debido a que toda la parte de criptografía y seguridad se implementaba haciendo uso de una librería en la que venía especificada todo lo que nos interesaba sobre el cifrado y descifrado.
+
+Aún así, nos hemos encontrado con pequeñas dificultades. La primera, la API REST. Nos costó un poco entender el funcionamiento e implementación de ella. Al final, una vez entendimos su uso y funcionamiento, no nos causó más dolores de cabeza.
+
+Otra dificultad encontrada fue el formato de las claves públicas y privadas pero, de nuevo, entendimos en seguida el formato y esto no nos ocasionó ningún problema más.
+
+En cuanto al descifrado del mensaje, tuvimos problemas a la hora de coger la clave simétrica cifrada del mensaje ya que entendimos que dicha clave cifrada ocupaba 256 bits y no 256 bytes como en realidad era. Hicimos un pequeño cambio e implementamos lo necesario para la verificación de la firma en un momento.
+
+Todo lo anterior lo probamos, lógicamente, en local. Una vez funcionó todo, pusimos las sentencias de la API REST y lo probamos con el servidor. Por último, limpiamos el código.
+
+En definitiva, fue una práctica mucho más sencilla de implementar y de probar que la primera.
+
+## Conclusiones personales
+Al igual que la primera práctica nos costó por el hecho de que teníamos bastante libertad en cuanto a la implementación, en esta no ha ocurrido lo mismo. En la práctica 2, los pasos han sido más guiados además de que rápidamente se entendía lo que se tenía que hacer. Esta combinación junto al uso de python, que te libera de alguna carga extra como el uso de la memoria, ha hecho que la práctica fuese mucho más llevadera que la primera. 
+
+La práctica nos ha ayudado a ver todos los conceptos de la teoría de la propia asignatura de una manera sencilla y, por el hecho de probar a jugar con el tema del cifrado y descifrado, hemos podido incluso matizar algún concepto que no quedáse claro con la teoría.
+
+En resumen, la práctica se nos ha hecho amena y nos ha ayudado a definir y comprender mejor los conceptos teóricos de seguridad y criptografía impartidos en al asignatura.
